@@ -57,9 +57,9 @@ suppressPackageStartupMessages({
 ##GET PARAMETERS AND DATA
 ##########################
 
-input <- "../BWH_counts/definitive_results/tsv/all_genes_Affected_vs_Unaffected.tsv"
+input <- "C:/Users/CBM/Desktop/BWH_counts/definitive_results/tsv/all_genes_Affected_vs_Unaffected.tsv"
 
-data <- read.table(input, sep= "\t", quote = "", header=T)
+data <- read.table(input, sep= "\t", quote = "", header=T, row.names = 1)
 
 prefix <- "GSEA_results"
 
@@ -71,7 +71,7 @@ cat("\n Calculation GSEA and making some nice plots \n")
 ##Calculate GSEA
 
 dat <- data$stat 
-names(dat) <- as.character(data$symbol)
+names(dat) <- as.character(rownames(data))
 dat_filtered <- dat[!duplicated(names(dat))] #remove rows with duplicate names = removes 7650 entries with NA as gene symbol
 dat_sort <- sort(dat_filtered, decreasing=TRUE)
 
@@ -92,39 +92,39 @@ egs_df_excel2 <- egs_df[, 3:length(egs_df)]
 #egs_df_excel <- egs_df
 #names(egs_df_excel)[names(egs_df_excel) == 'ID'] <- 'Identifier'
  
-write.table(egs_df_excel2, file = paste("results/stat/H_v4/tableGSEA_0.05_stat_symbol",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = T)
+write.table(egs_df_excel2, file = paste("C:/Users/CBM/Documents/GitHub/GSEA/results/GSEA_stat_H/tableGSEA_0.05_stat_ENSEMBL",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = T)
 
 
 ##Dotplot / BarPlot
 
-jpeg(file = paste("results/stat/H_v4/", prefix, "_dotplot.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+jpeg(file = paste("C:/Users/CBM/Documents/GitHub/GSEA/results/GSEA_stat_H/", prefix, "_dotplot.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
   par(mar = c(2, 2, 2, 5)) 
   dotplot(egs, x = "GeneRatio", color = "pvalue", showCategory = 20, font.size = 15)
 invisible(dev.off())
 
 ##Gene-concept network
 
-jpeg(file = paste("results/stat/H_v4/", prefix, "_gene_concept_net_stat_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+jpeg(file = paste("C:/Users/CBM/Documents/GitHub/GSEA/results/GSEA_stat_H/", prefix, "_gene_concept_net_stat_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     par(mar = c(2, 2, 2, 5)) 
     cnetplot(egs, categorySize="pvalue", foldChange=NULL, font.size = 15, colorEdge = T)
 invisible(dev.off())
 
 ##Ridgeline plot
 
-jpeg(file = paste("results/stat/H_v4/", prefix, "_ridge_stat_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+jpeg(file = paste("C:/Users/CBM/Documents/GitHub/GSEA/results/GSEA_stat_H/", prefix, "_ridge_stat_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     par(mar = c(2, 2, 2, 5)) 
     ridgeplot(egs, fill="p.adjust", core_enrichment = TRUE, orderBy = "NES")
 invisible(dev.off())
 
 ##Heatplot
 
-jpeg(file = paste("results/stat/H_v4/", prefix, "_heatplot_stat_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
+jpeg(file = paste("C:/Users/CBM/Documents/GitHub/GSEA/results/GSEA_stat_H/", prefix, "_heatplot_stat_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
     heatplot(egs, foldChange=NULL)
 invisible(dev.off())
 
 
 ##GSEAplot
-jpeg(file = paste("results/stat/H_v4/", prefix, "_gsea_plot_stat_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
+jpeg(file = paste("C:/Users/CBM/Documents/GitHub/GSEA/results/GSEA_stat_H/", prefix, "_gsea_plot_stat_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
     gseaplot(egs, geneSetID = 1)
 invisible(dev.off())
 
@@ -153,11 +153,11 @@ mat_20first <- as.data.frame(mat)
 colnames(mat_20first) <- func_20first
 row.names(mat_20first) <- uniq_genes
 
-jpeg(file = paste("results/stat/H_v4/", prefix, "_upset_20first_stat_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+jpeg(file = paste("C:/Users/CBM/Documents/GitHub/GSEA/results/GSEA_stat_H/", prefix, "_upset_20first_stat_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     upset(mat_20first, nsets=10, order.by="freq", sets.bar.color="skyblue")
 invisible(dev.off())
 
-jpeg(file = paste("results/stat/H_v4/", prefix, "_upset.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+jpeg(file = paste("C:/Users/CBM/Documents/GitHub/GSEA/results/GSEA_stat_H/", prefix, "_upset.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     enrichplot::upsetplot(egs)
 invisible(dev.off())
 
@@ -170,7 +170,7 @@ cowplot::plot_grid(p2, ncol = 1, lables = LETTERS[1])
 for (j in 1:13){
   pl <- gseaplot2(egs, geneSetID=j, title = egs$Description[j], base_size=40, color="red")
   desc <- gsub(" ", "_", egs$Description[j], fixed = TRUE) 
-  filename <- paste("results/stat/H_v4/", desc, "_", prefix, ".jpeg", sep ="")
+  filename <- paste("C:/Users/CBM/Documents/GitHub/GSEA/results/GSEA_stat_H/", desc, "_", prefix, ".jpeg", sep ="")
   ggsave(pl, file=filename, device = "jpeg", units= "in", height = 15, width = 20)
 }
 
