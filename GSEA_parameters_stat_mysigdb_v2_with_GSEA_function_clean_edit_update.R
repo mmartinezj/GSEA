@@ -1,22 +1,7 @@
-#!/usr/bin/env Rscript
-##
-##R Script to make GSEA analysis
-##The input must be a tab-separated file with 2 columns: first column must contain the gene IDs
-##and the second one the log2FC values.
-##
-##THE ORDER OF THE COLUMNS IS VERY IMPORTANT!!
-## 
-## Eva Sacristán and Sandra González (GENGS CBMSO)
-##################################################################
-
-#
-#######################
-
 ##CLEAN AND LIBRARIES
 #####################
 
-cat("\n Checking if all libraries are installed \n")
-#rm(list=ls())
+rm(list=ls())
 
 repos = "http://cran.us.r-project.org"
 if ("UpSetR" %in% row.names(installed.packages())  == FALSE) install.packages("UpSetR", repos = repos)
@@ -57,14 +42,21 @@ suppressPackageStartupMessages({
 
 
 ##GET PARAMETERS AND DATA
-##########################
 #Paths
 workingD <- rstudioapi::getActiveDocumentContext()$path
 setwd(dirname(workingD))
-input <- "C:/Users/CBM/Desktop/BWH_counts/definitive_results/tsv/deseq2_noNA_padj_Affected_vs_Unaffected.tsv"
-# file no NA -> deseq2_noNA_padj_Affected_vs_Unaffected
-# file all -> all_genes_Affected_vs_Unaffected.tsv
 
+#Input file
+input_file <- "all_genes" #select from noNA_genes, all_genes, shrunken_genes
+if(input_file == "noNA_genes"){
+  input <- "C:/Users/CBM/Desktop/BWH_counts/definitive_results/tsv/deseq2_noNA_padj_Affected_vs_Unaffected.tsv"
+} else if(input_file == "all_genes"){
+  input <- "C:/Users/CBM/Desktop/BWH_counts/definitive_results/tsv/all_genes_Affected_vs_Unaffected.tsv"
+} else if(input_file == "shrunken_genes"){
+  input <- "C:/Users/CBM/Desktop/BWH_counts/definitive_results/tsv/????????.tsv"
+}
+
+#Some variables
 data <- read.table(input, sep= "\t", quote = "", header=T, row.names = 1)
 
 prefix <- "GSEA_results"
@@ -73,20 +65,18 @@ category <- "H"
 
 subcategory <- NULL
 
-genes <- "noNA_genes"
-
-statistic <- "log+pvalue" #select from stat, log2foldchange, log+pvalue
+statistic <- "logsign+pvalue" #select from stat, shrunken_log2FC, log+pvalue
 
 #Outputs
 resD0 <- paste0("results/GSEA_", statistic, "_")
-resD <- gsub(':','_', paste0(resD0, category,'_', subcategory, genes, '/'))
+resD <- gsub(':','_', paste0(resD0, category,'_', subcategory, input_file, '/'))
 
 if (!file.exists(resD)){
   dir.create(file.path(resD))
 }
     
 #Rank data using the desired metric
-if (statistic == "log+pvalue"){
+if (statistic == "logsign+pvalue"){
   data$fcsign <- sign(data$log2FoldChange)
   data$logP = -log10(data$pvalue)
   data$metric = data$logP/data$fcsign
@@ -94,13 +84,19 @@ if (statistic == "log+pvalue"){
   names(dat) <- as.character(rownames(data))
   dat_filtered <- dat[!duplicated(names(dat))] #remove rows with duplicate names = removes 7650 entries with NA as gene symbol
   dat_sort <- sort(dat_filtered, decreasing=TRUE)
-  cat("Using log+pvalue metric")
-} else{ 
+  cat("Using logsign+pvalue metric")
+} else if(statistic == "stat"){ 
     dat <- data$stat 
     names(dat) <- as.character(rownames(data))
     dat_filtered <- dat[!duplicated(names(dat))] #remove rows with duplicate names = removes 7650 entries with NA as gene symbol
     dat_sort <- sort(dat_filtered, decreasing=TRUE)
     cat("Using stat metric")
+} else if(statistic == "shrunken_log2FC"){ 
+  dat <- data$stat 
+  names(dat) <- as.character(rownames(data))
+  dat_filtered <- dat[!duplicated(names(dat))] #remove rows with duplicate names = removes 7650 entries with NA as gene symbol
+  dat_sort <- sort(dat_filtered, decreasing=TRUE)
+  cat("Using shrunken_log2FC metric")
 }
 
 
@@ -119,25 +115,25 @@ egs_df_excel2 <- egs_df[, 2:length(egs_df)]
 #egs_df_excel <- egs_df
 #names(egs_df_excel)[names(egs_df_excel) == 'ID'] <- 'Identifier'
  
-write.table(egs_df_excel2, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, genes, "_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
+write.table(egs_df_excel2, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, input_file, "_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 
 if (category == "C5"){
   #Write table for GOBP
   C5_GOBP <- egs_df_excel2[grep("^GOBP", egs_df_excel2$Description),]
   #C5_GOBP <- egs_df[str_detect(egs_df$Description, "GOBP"),] #Alternative way to extract subsets
-  write.table(C5_GOBP, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, genes, "_C5_GOBP_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
+  write.table(C5_GOBP, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, input_file, "_C5_GOBP_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 
   #Write table for GOCC
   C5_GOCC <- egs_df_excel2[grep("^GOCC", egs_df_excel2$Description),]
-  write.table(C5_GOCC, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, genes, "_C5_GOCC_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
+  write.table(C5_GOCC, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, input_file, "_C5_GOCC_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 
   #Write table for GOMF
   C5_GOMF <- egs_df_excel2[grep("^GOMF", egs_df_excel2$Description),]
-  write.table(C5_GOMF, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, genes, "_C5_GOMF_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
+  write.table(C5_GOMF, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, input_file, "_C5_GOMF_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 
   #Write table for HP
   C5_HP <- egs_df_excel2[grep("^HP", egs_df_excel2$Description),]
-  write.table(C5_HP, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, genes, "_HP_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
+  write.table(C5_HP, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, input_file, "_HP_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 }
 
 #PLOTS
