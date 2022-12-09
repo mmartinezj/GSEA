@@ -61,75 +61,86 @@ suppressPackageStartupMessages({
 #Paths
 workingD <- rstudioapi::getActiveDocumentContext()$path
 setwd(dirname(workingD))
-input <- "C:/Users/CBM/Desktop/BWH_counts/definitive_results/tsv/all_genes_Affected_vs_Unaffected.tsv"
+input <- "C:/Users/CBM/Desktop/BWH_counts/definitive_results/tsv/deseq2_noNA_padj_Affected_vs_Unaffected.tsv"
+# file no NA -> deseq2_noNA_padj_Affected_vs_Unaffected
+# file all -> all_genes_Affected_vs_Unaffected.tsv
 
 data <- read.table(input, sep= "\t", quote = "", header=T, row.names = 1)
 
 prefix <- "GSEA_results"
 
-category <- "C2"
+category <- "H"
 
 subcategory <- NULL
 
-genes <- "all_genes"
+genes <- "noNA_genes"
+
+statistic <- "log+pvalue" #select from stat, log2foldchange, log+pvalue
 
 #Outputs
-resD0 <- 'results/GSEA_stat_'
+resD0 <- paste0("results/GSEA_", statistic, "_")
 resD <- gsub(':','_', paste0(resD0, category,'_', subcategory, genes, '/'))
 
 if (!file.exists(resD)){
   dir.create(file.path(resD))
 }
-
-##GENERATE PLOT
-#####################
-
-cat("\n Calculation GSEA and making some nice plots \n")
     
-##Calculate GSEA
+#Rank data using the desired metric
+if (statistic == "log+pvalue"){
+  data$fcsign <- sign(data$log2FoldChange)
+  data$logP = -log10(data$pvalue)
+  data$metric = data$logP/data$fcsign
+  dat <- data$metric
+  names(dat) <- as.character(rownames(data))
+  dat_filtered <- dat[!duplicated(names(dat))] #remove rows with duplicate names = removes 7650 entries with NA as gene symbol
+  dat_sort <- sort(dat_filtered, decreasing=TRUE)
+  cat("Using log+pvalue metric")
+} else{ 
+    dat <- data$stat 
+    names(dat) <- as.character(rownames(data))
+    dat_filtered <- dat[!duplicated(names(dat))] #remove rows with duplicate names = removes 7650 entries with NA as gene symbol
+    dat_sort <- sort(dat_filtered, decreasing=TRUE)
+    cat("Using stat metric")
+}
 
-dat <- data$stat 
-names(dat) <- as.character(rownames(data))
-dat_filtered <- dat[!duplicated(names(dat))] #remove rows with duplicate names = removes 7650 entries with NA as gene symbol
-dat_sort <- sort(dat_filtered, decreasing=TRUE)
 
 #Obtain hallmark gene sets relevant to Homo sapiens
-
 mm_hallmark_sets <- msigdbr(species = "Homo sapiens", category = category) %>% 
   dplyr::select(gs_name, ensembl_gene)
-head(mm_hallmark_sets)
+head(mm_hallmark_sets) #Check using sets
+
 
 #Calculate GSEA and write tables of results
-
 set.seed(123)
-egs <- GSEA(geneList = dat_sort, pvalueCutoff = 0.05, eps = 0, pAdjustMethod = "BH", seed = T, TERM2GENE = mm_hallmark_sets)
+egs <- GSEA(geneList = y_sort, pvalueCutoff = 0.05, eps = 0, pAdjustMethod = "BH", seed = T, TERM2GENE = mm_hallmark_sets)
 head(egs@result)
 egs_df <- data.frame(egs@result)
 egs_df_excel2 <- egs_df[, 2:length(egs_df)]
 #egs_df_excel <- egs_df
 #names(egs_df_excel)[names(egs_df_excel) == 'ID'] <- 'Identifier'
  
-write.table(egs_df_excel2, file = paste(resD, "tableGSEA_0.05_stat_ENSEMBL_", category, "_", subcategory, genes, "_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
+write.table(egs_df_excel2, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, genes, "_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 
 if (category == "C5"){
   #Write table for GOBP
   C5_GOBP <- egs_df_excel2[grep("^GOBP", egs_df_excel2$Description),]
   #C5_GOBP <- egs_df[str_detect(egs_df$Description, "GOBP"),] #Alternative way to extract subsets
-  write.table(C5_GOBP, file = paste(resD, "tableGSEA_0.05_stat_ENSEMBL_", category, "_", subcategory, genes, "_C5_GOBP_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
+  write.table(C5_GOBP, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, genes, "_C5_GOBP_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 
   #Write table for GOCC
   C5_GOCC <- egs_df_excel2[grep("^GOCC", egs_df_excel2$Description),]
-  write.table(C5_GOCC, file = paste(resD, "tableGSEA_0.05_stat_ENSEMBL_", category, "_", subcategory, genes, "_C5_GOCC_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
+  write.table(C5_GOCC, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, genes, "_C5_GOCC_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 
   #Write table for GOMF
   C5_GOMF <- egs_df_excel2[grep("^GOMF", egs_df_excel2$Description),]
-  write.table(C5_GOMF, file = paste(resD, "tableGSEA_0.05_stat_ENSEMBL_", category, "_", subcategory, genes, "_C5_GOMF_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
+  write.table(C5_GOMF, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, genes, "_C5_GOMF_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 
   #Write table for HP
   C5_HP <- egs_df_excel2[grep("^HP", egs_df_excel2$Description),]
-  write.table(C5_HP, file = paste(resD, "tableGSEA_0.05_stat_ENSEMBL_", category, "_", subcategory, genes, "_HP_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
+  write.table(C5_HP, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, genes, "_HP_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 }
 
+#PLOTS
 ##Dotplot / BarPlot
 
 jpeg(file = paste(resD, prefix, "_dotplot.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
@@ -139,27 +150,27 @@ invisible(dev.off())
 
 ##Gene-concept network
 
-jpeg(file = paste(resD, prefix, "_gene_concept_net_stat_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+jpeg(file = paste(resD, prefix, "_gene_concept_net_", statistic, "_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     par(mar = c(2, 2, 2, 5)) 
     cnetplot(egs, categorySize="pvalue", foldChange=NULL, font.size = 15, colorEdge = T)
 invisible(dev.off())
 
 ##Ridgeline plot
 
-jpeg(file = paste(resD, prefix, "_ridge_stat_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+jpeg(file = paste(resD, prefix, "_ridge_", statistic, "_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     par(mar = c(2, 2, 2, 5)) 
     ridgeplot(egs, fill="p.adjust", core_enrichment = TRUE, orderBy = "NES")
 invisible(dev.off())
 
 ##Heatplot
 
-jpeg(file = paste(resD, prefix, "_heatplot_stat_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
+jpeg(file = paste(resD, prefix, "_heatplot_", statistic, "_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
     heatplot(egs, foldChange=NULL)
 invisible(dev.off())
 
 
 ##GSEAplot
-jpeg(file = paste(resD, prefix, "_gsea_plot_stat_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
+jpeg(file = paste(resD, prefix, "_gsea_plot_", statistic, "_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
     gseaplot(egs, geneSetID = 1)
 invisible(dev.off())
 
@@ -188,7 +199,7 @@ mat_20first <- as.data.frame(mat)
 colnames(mat_20first) <- func_20first
 row.names(mat_20first) <- uniq_genes
 
-jpeg(file = paste(resD, prefix, "_upset_20first_stat_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+jpeg(file = paste(resD, prefix, "_upset_20first_", statistic, "_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     upset(mat_20first, nsets=10, order.by="freq", sets.bar.color="skyblue")
 invisible(dev.off())
 
@@ -223,14 +234,6 @@ if (sig_categories <= 20){
     ggsave(gseap, file= paste(resD, prefix, "_gseaplot.jpeg", sep =""), device = "jpeg", units= "in", height = 20, width = 25)
 }
 
-##QUIT
-####################
-
-cat("\n ALL DONE!!! ^w^ \n")
 
 ######TESTING
-
-list_split <- strsplit(as.character(egs_df$core_enrichment[1]), "/", fixed = T)
-list_split_rows <- as.data.frame(do.call(cbind, list_split)) #With this I get a column with the genes of first row (first gene set)
-
 
