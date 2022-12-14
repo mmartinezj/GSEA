@@ -110,7 +110,7 @@ if (statistic == "logsign+pvalue"){
   cat("Using shrunken_log2FC metric")
 }
 
-if (as.numeric(length(subcategory)) <= 1){
+if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
   #Obtain hallmark gene sets relevant to Homo sapiens
   mm_hallmark_sets <- msigdbr(species = "Homo sapiens", category = category, subcategory = subcategory) %>% 
     dplyr::select(gs_name, ensembl_gene)
@@ -147,7 +147,7 @@ if (as.numeric(length(subcategory)) <= 1){
       resD <- gsub(':','_', paste0(resD0, category,'_', subcat, input_file, '/'))
       write.table(egs_df_excel2, file = gsub(':','_', paste0(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcat, "_", input_file, "_", prefix,".txt", sep ="")), sep= "\t", quote = F, row.names = F)
   }
-}
+
 
 if (category == "C5" & is.null(subcategory)){
   #Write table for GOBP
@@ -170,12 +170,20 @@ if (category == "C5" & is.null(subcategory)){
 
 #PLOTS
 ##Dotplot / BarPlot
-
-jpeg(file = paste(resD, prefix, "_dotplot.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
-  par(mar = c(2, 2, 2, 5)) 
-  dotplot(egs, x = "GeneRatio", color = "pvalue", showCategory = 20, font.size = 15)
-invisible(dev.off())
-
+if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
+  jpeg(file = paste(resD, prefix, "_dotplot.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+    par(mar = c(2, 2, 2, 5)) 
+    dotplot(egs, x = "GeneRatio", color = "pvalue", showCategory = 20, font.size = 15)
+  invisible(dev.off())
+} else {
+    for(subcat in subcategory){
+      jpeg(file = gsub(':','_', paste0(resD, prefix, subcat, "_dotplot.jpeg", sep ="")), units = 'in', width = 15, height = 10, res = 300)
+        par(mar = c(2, 2, 2, 5)) 
+        dotplot(egs, x = "GeneRatio", color = "pvalue", showCategory = 20, font.size = 15)
+      invisible(dev.off())
+    }
+}
+}
 ##Gene-concept network
 
 jpeg(file = paste(resD, prefix, "_gene_concept_net_", statistic, "_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
