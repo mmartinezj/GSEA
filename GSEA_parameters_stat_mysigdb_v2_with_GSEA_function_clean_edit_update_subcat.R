@@ -110,6 +110,7 @@ if (statistic == "logsign+pvalue"){
   cat("Using shrunken_log2FC metric")
 }
 
+
 if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
   #Obtain hallmark gene sets relevant to Homo sapiens
   mm_hallmark_sets <- msigdbr(species = "Homo sapiens", category = category, subcategory = subcategory) %>% 
@@ -138,6 +139,8 @@ if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
       set.seed(123)
       egs <- GSEA(geneList = dat_sort, pvalueCutoff = 0.05, eps = 0, pAdjustMethod = "BH", seed = T, TERM2GENE = mm_hallmark_sets)
       head(egs@result)
+      new_name <- gsub(':','_', subcat)
+      assign(new_name, egs)
       egs_df <- data.frame(egs@result)
       egs_df_excel2 <- egs_df[, 2:length(egs_df)]
       #egs_df_excel <- egs_df
@@ -147,7 +150,6 @@ if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
       resD <- gsub(':','_', paste0(resD0, category,'_', subcat, input_file, '/'))
       write.table(egs_df_excel2, file = gsub(':','_', paste0(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcat, "_", input_file, "_", prefix,".txt", sep ="")), sep= "\t", quote = F, row.names = F)
   }
-
 
 if (category == "C5" & is.null(subcategory)){
   #Write table for GOBP
@@ -167,48 +169,75 @@ if (category == "C5" & is.null(subcategory)){
   C5_HP <- egs_df_excel2[grep("^HP", egs_df_excel2$Description),]
   write.table(C5_HP, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, input_file, "_HP_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
 }
+}
+
 
 #PLOTS
-##Dotplot / BarPlot
+
 if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
+  ##Dotplot / BarPlot
   jpeg(file = paste(resD, prefix, "_dotplot.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     par(mar = c(2, 2, 2, 5)) 
     dotplot(egs, x = "GeneRatio", color = "pvalue", showCategory = 20, font.size = 15)
   invisible(dev.off())
-} else {
-    for(subcat in subcategory){
-      jpeg(file = gsub(':','_', paste0(resD, prefix, subcat, "_dotplot.jpeg", sep ="")), units = 'in', width = 15, height = 10, res = 300)
-        par(mar = c(2, 2, 2, 5)) 
-        dotplot(egs, x = "GeneRatio", color = "pvalue", showCategory = 20, font.size = 15)
-      invisible(dev.off())
-    }
-}
-}
-##Gene-concept network
-
-jpeg(file = paste(resD, prefix, "_gene_concept_net_", statistic, "_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+  
+  ##Gene-concept network
+  jpeg(file = paste(resD, prefix, "_gene_concept_net_", statistic, "_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     par(mar = c(2, 2, 2, 5)) 
     cnetplot(egs, categorySize="pvalue", foldChange=NULL, font.size = 15, colorEdge = T)
-invisible(dev.off())
-
-##Ridgeline plot
-
-jpeg(file = paste(resD, prefix, "_ridge_", statistic, "_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
+  invisible(dev.off())
+  
+  ##Ridgeline plot
+  jpeg(file = paste(resD, prefix, "_ridge_", statistic, "_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     par(mar = c(2, 2, 2, 5)) 
     ridgeplot(egs, fill="p.adjust", core_enrichment = TRUE, orderBy = "NES")
-invisible(dev.off())
-
-##Heatplot
-
-jpeg(file = paste(resD, prefix, "_heatplot_", statistic, "_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
+  invisible(dev.off())
+  
+  ##Heatplot
+  jpeg(file = paste(resD, prefix, "_heatplot_", statistic, "_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
     heatplot(egs, foldChange=NULL)
-invisible(dev.off())
-
-
-##GSEAplot
-jpeg(file = paste(resD, prefix, "_gsea_plot_", statistic, "_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
+  invisible(dev.off())
+  
+  ##GSEAplot
+  jpeg(file = paste(resD, prefix, "_gsea_plot_", statistic, "_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
     gseaplot(egs, geneSetID = 1)
-invisible(dev.off())
+  invisible(dev.off())
+  
+} else {
+  for(subcat in subcategory){
+    GSEA_obj <- gsub(':','_', subcat)
+    GSEA_obj <- get(GSEA_obj)
+    
+    ##Dotplot / BarPlot
+    jpeg(file = gsub(':','_', paste0(resD0, category,'_', subcat, input_file, '/', prefix, subcat, "_dotplot.jpeg", sep ="")), units = 'in', width = 15, height = 10, res = 300)
+      par(mar = c(2, 2, 2, 5))
+      print(dotplot(GSEA_obj, x = "GeneRatio", color = "pvalue", showCategory = 20, font.size = 15))
+    invisible(dev.off())
+    
+    ##Gene-concept network
+    jpeg(file = gsub(':','_', paste0(resD0, category,'_', subcat, input_file, '/', prefix, subcat, "_gene_concept_net_", statistic, "_.jpeg", sep ="")), units = 'in', width = 15, height = 10, res = 300)
+      par(mar = c(2, 2, 2, 5)) 
+      print(cnetplot(GSEA_obj, categorySize="pvalue", foldChange=NULL, font.size = 15, colorEdge = T))
+    invisible(dev.off())
+    
+    ##Ridgeline plot
+    jpeg(file = gsub(':','_', paste0(resD0, category,'_', subcat, input_file, '/', prefix, subcat, "_ridge_", statistic, "_.jpeg", sep ="")), units = 'in', width = 15, height = 10, res = 300)
+      par(mar = c(2, 2, 2, 5)) 
+      print(ridgeplot(GSEA_obj, fill="p.adjust", core_enrichment = TRUE, orderBy = "NES"))
+    invisible(dev.off())
+    
+    ##Heatplot
+    jpeg(file = gsub(':','_', paste0(resD0, category,'_', subcat, input_file, '/', prefix, subcat, "_heatplot_", statistic, "_.jpeg", sep ="")), units = 'in', width = 15, height = 10, res = 300)
+      print(heatplot(GSEA_obj, foldChange=NULL))
+    invisible(dev.off())
+    
+    ##GSEAplot
+    jpeg(file = gsub(':','_', paste0(resD0, category,'_', subcat, input_file, '/', prefix, subcat, "_gsea_plot_", statistic, "_.jpeg", sep ="")), units = 'in', width = 15, height = 10, res = 300)
+      print(gseaplot(GSEA_obj, geneSetID = 1))
+    invisible(dev.off())
+  }
+}
+
 
 ##Upset plot (of the 20 first terms)
 
