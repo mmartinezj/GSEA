@@ -53,7 +53,7 @@ if(input_file == "noNA_genes"){
 } else if(input_file == "all_genes"){
   input <- "C:/Users/CBM/Desktop/BWH_counts/definitive_results/tsv/all_genes_Affected_vs_Unaffected.tsv"
 } else if(input_file == "shrunken_genes"){
-  input <- "C:/Users/CBM/Desktop/BWH_counts/definitive_results/tsv/????????.tsv"
+  input <- "C:/Users/CBM/Desktop/BWH_counts/definitive_results/tsv/shrunken_log2FC_Affected_vs_Unaffected.tsv.tsv"
 }
 
 #Some variables
@@ -61,9 +61,9 @@ data <- read.table(input, sep= "\t", quote = "", header=T, row.names = 1)
 
 prefix <- "GSEA_results"
 
-category <- "C5"
+category <- "H" 
 
-subcategory <- c("GO:BP", "GO:CC", "GO:MF", "HPO")
+subcategory <- NULL #to add subcategories, add them as a vector -> c("x", "y", ...)
 
 statistic <- "stat" #select from stat, shrunken_log2FC, log+pvalue
 
@@ -178,29 +178,29 @@ if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
   ##Dotplot / BarPlot
   jpeg(file = paste(resD, prefix, "_dotplot.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     par(mar = c(2, 2, 2, 5)) 
-    dotplot(egs, x = "GeneRatio", color = "pvalue", showCategory = 20, font.size = 15)
+    print(dotplot(egs, x = "GeneRatio", color = "pvalue", showCategory = 20, font.size = 15))
   invisible(dev.off())
   
   ##Gene-concept network
   jpeg(file = paste(resD, prefix, "_gene_concept_net_", statistic, "_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     par(mar = c(2, 2, 2, 5)) 
-    cnetplot(egs, categorySize="pvalue", foldChange=NULL, font.size = 15, colorEdge = T)
+    print(cnetplot(egs, categorySize="pvalue", foldChange=NULL, font.size = 15, colorEdge = T))
   invisible(dev.off())
   
   ##Ridgeline plot
   jpeg(file = paste(resD, prefix, "_ridge_", statistic, "_.jpeg", sep =""), units = 'in', width = 15, height = 10, res = 300)
     par(mar = c(2, 2, 2, 5)) 
-    ridgeplot(egs, fill="p.adjust", core_enrichment = TRUE, orderBy = "NES")
+    print(ridgeplot(egs, fill="p.adjust", core_enrichment = TRUE, orderBy = "NES"))
   invisible(dev.off())
   
   ##Heatplot
   jpeg(file = paste(resD, prefix, "_heatplot_", statistic, "_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
-    heatplot(egs, foldChange=NULL)
+    print(heatplot(egs, foldChange=NULL))
   invisible(dev.off())
   
   ##GSEAplot
   jpeg(file = paste(resD, prefix, "_gsea_plot_", statistic, "_.jpeg", sep =""), units = 'in', width = 20, height = 10, res = 300)
-    gseaplot(egs, geneSetID = 1)
+    print(gseaplot(egs, geneSetID = 1))
   invisible(dev.off())
   
 } else {
