@@ -130,6 +130,7 @@ if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
 } else {
     for(subcat in subcategory){
       print(paste0("Performing GSEA for ", subcat))
+      
       #Obtain hallmark gene sets relevant to Homo sapiens
       mm_hallmark_sets <- msigdbr(species = "Homo sapiens", category = category, subcategory = subcat) %>% 
         dplyr::select(gs_name, ensembl_gene)
@@ -143,6 +144,8 @@ if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
       assign(new_name, egs)
       egs_df <- data.frame(egs@result)
       egs_df_excel2 <- egs_df[, 2:length(egs_df)]
+      new_name_df <- gsub(':','_', subcat, "_df")
+      assign(new_name_df, egs_df)
       #egs_df_excel <- egs_df
       #names(egs_df_excel)[names(egs_df_excel) == 'ID'] <- 'Identifier'
       
@@ -150,6 +153,14 @@ if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
       resD <- gsub(':','_', paste0(resD0, category,'_', subcat, input_file, '/'))
       write.table(egs_df_excel2, file = gsub(':','_', paste0(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcat, "_", input_file, "_", prefix,".txt", sep ="")), sep= "\t", quote = F, row.names = F)
   }
+}
+
+#Removing some objects that won't be used in the rest of the script
+rm(new_name)
+rm(new_name_df)
+if (!category == "C5" & !is.null(subcategory)){
+  rm(egs_df_excel2)
+}
 
 if (category == "C5" & is.null(subcategory)){
   #Write table for GOBP
@@ -168,7 +179,6 @@ if (category == "C5" & is.null(subcategory)){
   #Write table for HP
   C5_HP <- egs_df_excel2[grep("^HP", egs_df_excel2$Description),]
   write.table(C5_HP, file = paste(resD, "tableGSEA_0.05_", statistic, "_ENSEMBL_", category, "_", subcategory, input_file, "_HP_",prefix,".txt", sep =""), sep= "\t", quote = F, row.names = F)
-}
 }
 
 
@@ -277,18 +287,41 @@ cowplot::plot_grid(p2, ncol = 1, lables = LETTERS[1])
 ##################################
 
 ###Plot the GSEA if terms are provided and if not, plot the first 5 more abundant terms
-sig_categories <- nrow(egs_df)
-if (sig_categories <= 20){
-  for (j in 1:sig_categories){
-    pl <- gseaplot2(egs, geneSetID=j, title = egs$Description[j], base_size=40, color="red")
-    desc <- gsub(" ", "_", egs$Description[j], fixed = TRUE) 
-    filename <- paste(resD, desc, "_", prefix, ".jpeg", sep ="")
-    ggsave(pl, file=filename, device = "jpeg", units= "in", height = 15, width = 20)
-  }
-  gseap <- gseaplot2(egs, geneSetID = 1:sig_categories, pvalue_table = TRUE)
-  ggsave(gseap, file= paste(resD, prefix, "_gseaplot.jpeg", sep =""), device = "jpeg", units= "in", height = 20, width = 25)
+if (as.numeric(length(subcategory)) <= 1 | is.null(subcategory)){
+  sig_categories <- nrow(egs_df)
+  if (sig_categories <= 20){
+    for (j in 1:sig_categories){
+      pl <- gseaplot2(egs, geneSetID=j, title = egs$Description[j], base_size=40, color="red")
+      desc <- gsub(" ", "_", egs$Description[j], fixed = TRUE) 
+      filename <- paste(resD, desc, "_", prefix, ".jpeg", sep ="")
+      ggsave(pl, file=filename, device = "jpeg", units= "in", height = 15, width = 20)
+    }
+    gseap <- gseaplot2(egs, geneSetID = 1:sig_categories, pvalue_table = TRUE)
+    ggsave(gseap, file= paste(resD, prefix, "_gseaplot.jpeg", sep =""), device = "jpeg", units= "in", height = 20, width = 25)
   
-} else{
+  } else{
+      for (j in 1:19){
+        pl <- gseaplot2(egs, geneSetID=j, title = egs$Description[j], base_size=40, color="red")
+        desc <- gsub(" ", "_", egs$Description[j], fixed = TRUE) 
+        filename <- paste(resD, desc, "_", prefix, ".jpeg", sep ="")
+        ggsave(pl, file=filename, device = "jpeg", units= "in", height = 15, width = 20)
+      }
+      gseap <- gseaplot2(egs, geneSetID = 1:19, pvalue_table = TRUE)
+      ggsave(gseap, file= paste(resD, prefix, "_gseaplot.jpeg", sep =""), device = "jpeg", units= "in", height = 20, width = 25)
+  }
+}else{
+  sig_categories <- nrow(egs_df)
+  if (sig_categories <= 20){
+    for (j in 1:sig_categories){
+      pl <- gseaplot2(egs, geneSetID=j, title = egs$Description[j], base_size=40, color="red")
+      desc <- gsub(" ", "_", egs$Description[j], fixed = TRUE) 
+      filename <- paste(resD, desc, "_", prefix, ".jpeg", sep ="")
+      ggsave(pl, file=filename, device = "jpeg", units= "in", height = 15, width = 20)
+    }
+    gseap <- gseaplot2(egs, geneSetID = 1:sig_categories, pvalue_table = TRUE)
+    ggsave(gseap, file= paste(resD, prefix, "_gseaplot.jpeg", sep =""), device = "jpeg", units= "in", height = 20, width = 25)
+    
+  } else{
     for (j in 1:19){
       pl <- gseaplot2(egs, geneSetID=j, title = egs$Description[j], base_size=40, color="red")
       desc <- gsub(" ", "_", egs$Description[j], fixed = TRUE) 
@@ -297,8 +330,11 @@ if (sig_categories <= 20){
     }
     gseap <- gseaplot2(egs, geneSetID = 1:19, pvalue_table = TRUE)
     ggsave(gseap, file= paste(resD, prefix, "_gseaplot.jpeg", sep =""), device = "jpeg", units= "in", height = 20, width = 25)
+  }
 }
 
-
+#Save session info
+writeLines(capture.output(sessionInfo()), "sessionInfo_GSEA.txt")
+  
 ######TESTING
 
